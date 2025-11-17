@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: gp3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: quay.io/fedora/postgresql-16:latest
+          ports:
+            - containerPort: 5432
+          env:
+            - name: DB_HOST
+              value: localhost
+            - name: DB_PORT
+              value: 5432
+            - name: DB_USER
+              value: guestbook
+            - name: DB_PASSWORD
+              value: password
+            - name: DB_NAME
+              value: guestbook
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: golang
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: golang
+  template:
+    metadata:
+      labels:
+        app: golang
+    spec:
+      containers:
+        - name: golang
+          image: quay.io/hardo314/golang-backend:latest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: golang
+spec:
+  type: ClusterIP
+  selector:
+    app: golang
+  ports:
+    - port: 8080
