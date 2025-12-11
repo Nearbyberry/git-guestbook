@@ -1,0 +1,39 @@
+name: Deploy to OpenShift
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Show files (optional)
+        run: |
+          pwd
+          ls
+
+      - name: Login to OpenShift
+        run: |
+          oc login \
+            --token=${{ secrets.OCP_TOKEN }} \
+            --insecure-skip-tls-verify \
+            --server=https://api.devops24.cloud2.se:6443
+
+      - name: Select project
+        run: |
+          oc project guestbook?
+
+      - name: Apply manifests
+        run: |
+          oc apply -f configmap.yaml
+          oc apply -f configmap.yaml
+          oc apply -f deployment.yaml
+          oc apply -f backend.yaml
+          oc apply -f frontend.yaml
+          oc logout
